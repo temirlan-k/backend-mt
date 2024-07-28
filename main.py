@@ -9,7 +9,7 @@ from typing import List, Optional
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 import httpx
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.chat_message_histories import ChatMessageHistory
@@ -28,10 +28,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 STREAMING_API_URL = 'https://api.heygen.com/v1/streaming.create_token'
 
 
-API_KEY_1 = 'MDBmZDE1NmRkM2Y3NDliZTg2NDNlMjRiZTU5OThlN2QtMTcxOTIyNTMzNg=='
-API_KEY_2 = 'ZDhmYzQxNDcxZTUxNGNiMzg4MmRkMTFhNDM2ZjVlMzktMTcyMTY2NjI4OQ=='
-API_KEY_3 = 'NWNhYjgxNDIzZjA1NDkzYjg2YTYxNmE1ZWZjMjM0NmYtMTcyMTY2NzgxMA=='
-API_KEY_4 = 'ZjYyYTA0ZjExNDcwNGZkMzkyODA5YzA5ZmI3Yzc1YzgtMTcyMTY3MTQ2MA=='
 API_KEY_5 = 'Zjk4ZjQwOWVkM2ExNDk5Y2FkMTU1NTI3MzA2NDgwMWEtMTcyMTY5NzI1OQ=='
 API_KEY_6 = 'ZDRiN2QwYTRkM2U0NDEzNmIzY2U1MThhOGZhZjQ0MTYtMTcyMTk4MzU5OQ=='
 API_KEY_7 = 'M2U5NTI1NWM3NzZlNDA3MGI4NjY0YzcxYmVkZTM1OWYtMTcyMTk4NDAxMw=='
@@ -43,12 +39,22 @@ API_KEY_12 = "N2FhNzRkZjVhZGI2NDM5ZTk5MDhkYTBiNGQ5OWI2NmUtMTcyMTk4NjM1NQ=="
 API_KEY_13 = "ZjM3ZTdjZWRkMDE0NGUzMTkxNDgyMmM5YjNhYzhhNDEtMTcyMTk4NjI5Ng=="
 API_KEY_14 = "MTJlOTAyMGFjYWZkNDdlNjg2M2JkYmE1ZGMwZTMzM2YtMTcyMTk4NTk2MQ=="
 API_KEY_15 = "ZGYzMjc1ZTE5MjQ4NDE1ZmI2NDU4ZjhiYTcxNmNhMGYtMTcyMTk4NjE5OA=="
+API_KEY_16 = 'NGViMDg3OTZkZDUzNDYzY2FhMjQ5MjhkYjcxMzVkYjgtMTcyMjEyNDMwMQ=='
+API_KEY_17 ='ZTdiNzIwMTFmM2UwNDM5ZDkwMjA4YjAyM2NjZTA5MmQtMTcyMjE4NjQyMA=='
+API_KEY_18 = 'M2Y3NTQxMTViMjkyNDg0M2IzZTkxNTM4Y2U4M2E3ZjAtMTcyMjE4NjYyOA=='
+API_KEY_19 = 'MGFkNjdkNWIwOGFiNGViZWI4ZTMwNWY3NDIxMGUxZWYtMTcyMjE5MTQ4NA=='
+API_KEY_20 = 'N2NhYzhhZGU1MTFiNDczYmIwMGNiM2FhMTIzZGUzNDMtMTcyMjE5MTU5Ng=='
+API_KEY_21 = 'YmYyOWFkMTk3MjQxNDkzZmFlNjVkZWMwYmFmNTA1NjUtMTcyMjE5MTczNg=='
+API_KEY_22 = 'M2I3YjVlZDhhZTgyNGY1Njg0MzRhNTZhZGFhNGJjY2UtMTcyMjE5MTkxMg=='
+API_KEY_23 = 'MTU0OWJhMzQyNTczNDM5YWEyYmFiYjFmNDNjNjY2ZmUtMTcyMjE5NDA4MQ=='
+API_KEY_24 = 'MmYxNTJjZTkxYjcxNDE0MTg5M2IwYWI1ZTRmNTU5NjktMTcyMjE5NDIwMQ=='
+API_KEY_25 = 'MTY5OWQ1MWE0YTRhNDg2YTkxNWM3MjgwODFlMjE1NDgtMTcyMjE5NDM2Nw=='
+API_KEY_26 = 'MWM4MzhlZDk0NWRkNDYwZWJiYjRmNWMyNDk3YTdiZDEtMTcyMjE5NDU0Mw=='
+
+
 
 API_KEYS = [
-    API_KEY_1,
-    API_KEY_2,
-    API_KEY_3,
-    API_KEY_4,
+
     API_KEY_5,
     API_KEY_6,
     API_KEY_7,
@@ -60,6 +66,18 @@ API_KEYS = [
     API_KEY_13,
     API_KEY_14,
     API_KEY_15,
+    API_KEY_16,
+    API_KEY_17,
+    API_KEY_18,
+    API_KEY_19,
+    API_KEY_20,
+    API_KEY_21,
+    API_KEY_22,
+    API_KEY_23,
+    API_KEY_24,
+    API_KEY_25,
+    API_KEY_26
+    
 ]
 
 api_key_iterator = itertools.cycle(API_KEYS)
@@ -69,7 +87,7 @@ def get_next_api_key():
 
 # Initialize FastAPI
 app = FastAPI()
-
+print(os.getenv("DB_URL"))
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -211,43 +229,33 @@ async def get_resume(user_id: str):
     cv_path = user.get("cv_path")
     return FileResponse(cv_path, media_type="application/pdf", filename="resume.pdf")
 
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+    @field_validator('password')
+    def validate_password(cls,v):
+        if len(v) < 6:
+            raise ValueError('Password must be at least 8 characters')
+        return v
+
 @app.post("/register")
 async def register(
-    name: str = Form(...),
-    email: EmailStr = Form(...),
-    job_title: str = Form(...),
-    experience: str = Form(...),
-    password: str = Form(...),
-    cv: UploadFile = File(None)
+    register_request: RegisterRequest
 ):
-    existing_user = await users_collection.find_one({"email": email})
+    existing_user = await users_collection.find_one({"email": register_request.email})
     if existing_user:
         raise HTTPException(status_code=400, detail="User already registered")
-
     user_dict = {
-        "name": name,
-        "email": email,
-        "job_title": job_title,
-        "experience": experience,
-        "hashed_password": get_password_hash(password),
+        "email": register_request.email,
+        "hashed_password": get_password_hash(register_request.password),
         "_id": str(ObjectId())
     }
-
     result = await users_collection.insert_one(user_dict)
     if not result.inserted_id:
         raise HTTPException(status_code=500, detail="Registration failed")
-
-    if cv:
-        try:
-            cv_path = await save_cv(cv, str(result.inserted_id))
-            await users_collection.update_one({"_id": result.inserted_id}, {"$set": {"cv_path": cv_path}})
-        except HTTPException as e:
-            await users_collection.delete_one({"_id": result.inserted_id})
-            raise e
-
-    access_token = create_access_token(data={"sub": user_dict.get("email"), "name":user_dict.get("name"),"_id": user_dict.get("_id")})
+    access_token = create_access_token(data={"sub": user_dict.get("email"), "_id": user_dict.get("_id")})
     return {"token": access_token, "token_type": "bearer"}
-
 
 @app.get("/users/me")
 async def read_users_me(token: dict = Depends(jwt_bearer)):
