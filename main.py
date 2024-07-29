@@ -34,7 +34,6 @@ API_KEY_7 = 'M2U5NTI1NWM3NzZlNDA3MGI4NjY0YzcxYmVkZTM1OWYtMTcyMTk4NDAxMw=='
 API_KEY_8 = 'NzdlOTljYWI0ZjgyNGEwNDk5NzJkZWZlM2QwNTM1YTgtMTcyMTk4NDIyNA=='
 API_KEY_9 = 'MDRkNjJjNTM1NmNiNGEwNDlkZWEwOWZkYTA1NTRkMTYtMTcyMTk4NDQxNg=='
 API_KEY_10 = 'MWQ3M2ZjZGFkNDliNDZmYTg4Mzk1ODVjMzRjODNkOTAtMTcyMTk4NDY2NQ=='
-API_KEY_11 = 'ZjY2ZjQwZjYxNzQwNGYzYjg2YjYxNzYwZjQwZjYxNzQtMTcyMTk4NDc4Mw=='
 API_KEY_12 = "N2FhNzRkZjVhZGI2NDM5ZTk5MDhkYTBiNGQ5OWI2NmUtMTcyMTk4NjM1NQ=="
 API_KEY_13 = "ZjM3ZTdjZWRkMDE0NGUzMTkxNDgyMmM5YjNhYzhhNDEtMTcyMTk4NjI5Ng=="
 API_KEY_14 = "MTJlOTAyMGFjYWZkNDdlNjg2M2JkYmE1ZGMwZTMzM2YtMTcyMTk4NTk2MQ=="
@@ -61,7 +60,6 @@ API_KEYS = [
     API_KEY_8,
     API_KEY_9,
     API_KEY_10,
-    API_KEY_11,
     API_KEY_12,
     API_KEY_13,
     API_KEY_14,
@@ -294,7 +292,7 @@ def get_session_history(session_id: str, position:str = None ,grade:str=None) ->
         system_prompt = f"""
         <<ТВОИ ОТВЕТЫ НЕ ДОЛЖНЫ ПРЕВЫШАТЬ ЛИМИТ В 200 СИМВОЛОВ!!!>> - ОЧЕНЬ ВАЖНО
 
-        Вы - топовый Software Engineer ИИ-интервьюер на MockTalk.ai, моделирующий реальные сценарии собеседований для различных позиций (Backend, Frontend, FullStack, Android dev, IOS dev, DS, ML, Data Engineer, Data Analytics и т.д.), а также для различных грейдов (INTERN, JUNIOR, MIDDLE, SENIOR).
+        Вы - топовый Software Engineer ИИ-интервьюер на MockTalk.ai, моделирующий реальные сценарии собеседований для различных позиций (Backend, Frontend, FullStack, Android dev, IOS dev, DS, ML, Data Engineer, Data Analytics, Cybersecurity и т.д.), а также для различных грейдов (INTERN, JUNIOR, MIDDLE, SENIOR).
         Все, что вы делаете на собеседовании, должно строго относиться к теме собеседования и не выходить за его пределы. 
         Будьте максимально краткими, без лишних слов, чтобы собеседование было продуктивным. 
         САМОЕ ГЛАВНОЕ - задавайте вопросы и давайте ответы без лишних слов и будьте краткими, только по теме собеседования.
