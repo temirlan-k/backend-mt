@@ -99,7 +99,7 @@ app.add_middleware(
 
 # MongoDB client
 dbu = 'mongodb://localhost:27017/'
-client = AsyncIOMotorClient(dbu)
+client = AsyncIOMotorClient(os.getenv("DB_URL"))
 db = client.mocktalk
 sessions_collection = db.sessions
 users_collection = db.users
