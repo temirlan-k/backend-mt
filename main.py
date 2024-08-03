@@ -471,7 +471,7 @@ async def end_session_and_save_feedback(request: FeedbackRequest, token: dict = 
 async def get_feedbacks(token: dict = Depends(jwt_bearer)):
     decoded_token = decode_jwt(token)
     user_id = decoded_token.get("_id")
-    feedbacks = await sessions_collection.find({'user_id': user_id}).to_list(length=100)
+    feedbacks = await sessions_collection.find({'user_id': user_id}).sort('timestamp', -1).to_list(length=100)
     return [
         {
             '_id': str(feedback.get("_id")),
@@ -480,6 +480,8 @@ async def get_feedbacks(token: dict = Depends(jwt_bearer)):
             'timestamp': feedback.get('timestamp', '')
         } for feedback in feedbacks
     ]
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app='main:app', host="0.0.0.0", port=8002, reload=True, workers=4)
