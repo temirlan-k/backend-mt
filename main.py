@@ -3,10 +3,12 @@
 import os
 import itertools
 import time
+import json
 import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Depends, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr, field_validator
@@ -96,7 +98,8 @@ app.add_middleware(
 )
 
 # MongoDB client
-client = AsyncIOMotorClient(os.getenv("DB_URL"))
+dbu = 'mongodb://localhost:27017/'
+client = AsyncIOMotorClient(dbu)
 db = client.mocktalk
 sessions_collection = db.sessions
 users_collection = db.users
@@ -396,57 +399,87 @@ async def start_session():
 class FeedbackRequest(BaseModel):
     session_id: str
 
+
+
+
+
+
 @app.post("/end-session/")
 async def end_session_and_save_feedback(request: FeedbackRequest, token: dict = Depends(jwt_bearer)):
     decoded_token = decode_jwt(token)
     user_id = decoded_token.get("_id")
     session_id = request.session_id
+
+    # Prepare feedback prompt
     feedback_prompt = (
         f"Дай строгий фидбэк по пройденному пользователем интервью. "
         f"Вот вся история интервью:\n\n\n"
         "Оцени его по следующим критериям:\n"
         "1. Софт Скиллы (коммуникация, командная работа, адаптивность и т.д.).\n"
-        "   - Оцениваешь строго, обрати внимание на конкретность и уместность высказываний.\n"
+        " - Оцениваешь строго, обрати внимание на конкретность и уместность высказываний.\n"
         "2. Хард Скиллы (укажите конкретные темы, которые он знает хорошо и те, которые требуют улучшения).\n"
-        "   - Строго проверяешь ответы на правильность и конкретность. Выявляй ошибки и недочеты.\n"
+        " - Строго проверяешь ответы на правильность и конкретность. Выявляй ошибки и недочеты.\n"
         "3. Рекомендации (предложите материалы или шаги для улучшения слабых навыков).\n"
-        "   - Дай конкретные рекомендации, как улучшить слабые стороны.\n"
+        " - Дай конкретные рекомендации, как улучшить слабые стороны.\n"
         "Пример строгого фидбэка: 'Кандидат продемонстрировал недостаточную точность в объяснении алгоритмов. "
-        "Некоторые ответы содержали избыточную информацию, не относящуюся к теме. Рекомендуем изучить книги XYZ и курсы ABC.'"        
+        "Некоторые ответы содержали избыточную информацию, не относящуюся к теме. Рекомендуем изучить книги XYZ и курсы ABC."
+        "ДАЙ ФИДБЭК В ФОРМАТЕ БУЛЛЕТ ПОИНТОВ БЕЗ СИМВЛОВОВ ПРИМЕР: 1. 2. 3. 4. 5.'"
     )
-    chat_history =  get_session_history(session_id)
-    history = chat_history.messages[0].content
+
+    # Get chat history
+    chat_history = get_session_history(session_id)
+    
+    # Combine messages and save in JSON format without duplicates
+    combined_history = []
+    last_message = None
+
+    for msg in chat_history.messages[1:]:  # Skip the system prompt
+        role = 'Human' if isinstance(msg, HumanMessage) else 'AI'
+        content = msg.content.strip()
+        
+        if not last_message or (last_message["role"] != role or last_message["content"] != content):
+            combined_history.append({"role": role, "content": content})
+            last_message = {"role": role, "content": content}
+
+    history_text = "\n".join([f"{message['role']}: {message['content']}" for message in combined_history])
+
     messages = [
         SystemMessage(content=feedback_prompt),
-        HumanMessage(content=history)
+        HumanMessage(content=history_text)
     ]
+
+    # Get AI feedback
     ai_feedback = model.invoke(messages)
-    
+
+    # Prepare session data including history
     session_data = {
         "_id": str(ObjectId()),
         "session_id": session_id,
         "user_id": user_id,
+        "history": combined_history,
         "feedback": ai_feedback.content,
         "timestamp": time.time()
     }
-    await sessions_collection.insert_one(session_data)
 
-    return ai_feedback.content  
+    # Save session data to MongoDB
+    await sessions_collection.insert_one(jsonable_encoder(session_data))
+    
+    return session_data
+
 
 @app.get("/feedbacks/")
 async def get_feedbacks(token: dict = Depends(jwt_bearer)):
     decoded_token = decode_jwt(token)
-    user = await users_collection.find_one({"_id": decoded_token.get("_id")})
-    feedbacks = await sessions_collection.find({'user_id': user.get('_id')}).to_list(length=100)
-
+    user_id = decoded_token.get("_id")
+    feedbacks = await sessions_collection.find({'user_id': user_id}).to_list(length=100)
     return [
         {
-            '_id': str(i.get("_id")),
-            'feedback': i.get('feedback'),
-            'timestamp': i.get('timestamp', '')
-        } for i in feedbacks
+            '_id': str(feedback.get("_id")),
+            'feedback': feedback.get('feedback'),
+            'history': feedback.get('history'),
+            'timestamp': feedback.get('timestamp', '')
+        } for feedback in feedbacks
     ]
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app='main:app', host="0.0.0.0", port=8002, reload=True, workers=4)
