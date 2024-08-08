@@ -27,7 +27,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-STREAMING_API_URL = 'https://api.heygen.com/v1/streaming.create_token'
+STREAMING_API_URL = 'hhttps://api.heygen.com/v1/streaming.create_token'
+
 
 
 API_KEY_5 = 'Zjk4ZjQwOWVkM2ExNDk5Y2FkMTU1NTI3MzA2NDgwMWEtMTcyMTY5NzI1OQ=='
@@ -354,16 +355,21 @@ async def get_access_token():
             print(x_api_key, "x_api_key")
             headers = {
                 'x-api-key': x_api_key,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'accept': 'application/json'
             }
-            response = await client.post(STREAMING_API_URL, headers=headers)
+            url = "https://api.heygen.com/v1/streaming.create_token"
+
+            response = await client.post(url=url, headers=headers, json={})
             response.raise_for_status()
             data = response.json()
             token = data.get('data', {}).get('token')
             return {"token": token}
     except httpx.HTTPStatusError as http_error:
+        print(http_error)
         raise HTTPException(status_code=http_error.response.status_code, detail='Failed to retrieve access token')
     except httpx.RequestError as request_error:
+        print(request_error)
         raise HTTPException(status_code=500, detail='Network error')
 
 @app.post('/chat')
