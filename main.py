@@ -99,7 +99,7 @@ app.add_middleware(
 )
 
 # MongoDB client
-dbu = 'mongodb://localhost:27017/'
+dbu = os.getenv("DB_URL")
 client = AsyncIOMotorClient(os.getenv("DB_URL"))
 db = client.mocktalk
 sessions_collection = db.sessions
@@ -490,5 +490,5 @@ async def get_feedbacks(token: dict = Depends(jwt_bearer)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app='main:app', host="0.0.0.0", port=8002, reload=True, workers=4)
+    uvicorn.run(app='main:app', host="0.0.0.0", port=8000)
 
